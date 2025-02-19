@@ -1,0 +1,32 @@
+#as a pre-requesite update the existing package 
+echo "updating the existing package"
+sudo apt update -y
+
+#install JDK as jenkins is a jave based application
+echo "installing JDK"
+sudo apt install openjdk-17-jre -y
+
+#pre-requesite are done
+#installation of actual JENKIS tool
+echo "jenkins key..."
+sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
+  https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+
+echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+  https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+  /etc/apt/sources.list.d/jenkins.list > /dev/null
+
+echo "updating the existing packages"
+  sudo apt update -y
+
+echo "installing jenkins....."
+  sudo apt install -y jenkins 
+  
+#post installation we can start jenkins
+
+systemctl status jenkins 
+systemctl stop jenkins 
+systemctl start jenkins 
+systemctl restart jenkins 
+systemctl enable jenkins
+

@@ -1,0 +1,122 @@
+provider "aws" {
+  region     = "us-east-1"
+  access_key = ""
+  secret_key = ""
+}
+resource "aws_vpc" "terra" {
+  cidr_block       = "10.0.0.0/16"
+  instance_tenancy = "default"
+
+  tags = {
+    Name = "terra"
+  }
+}
+
+# Create Subnet 
+
+resource "aws_subnet" "terrasub" {
+  vpc_id     = aws_vpc.terra.id
+  cidr_block = "10.0.1.0/24"
+
+  tags = {
+    Name = "terrasub"
+  }
+}
+
+# Internet Gateway
+
+resource "aws_internet_gateway" "terra_gw" {
+  vpc_id = aws_vpc.terra.id
+
+  tags = {
+    Name = "terra_gw"
+  }
+}
+
+# Route Table
+
+resource "aws_route_table" "myrt9" {
+  vpc_id = aws_vpc.terra.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.terra_gw.id
+  }
+
+  tags = {
+    Name = "myrt9"
+  }
+}
+
+# Route Table Association
+
+resource "aws_route_table_association" "myrta9" {
+  subnet_id      = aws_subnet.terrasub.id
+  route_table_id = aws_route_table.myrt9.id
+}
+
+# Security Groups
+
+resource "aws_security_group" "mysg9" {
+  name        = "mysg9"
+  description = "Allow inbound traffic"
+  vpc_id      = aws_vpc.terra.id
+
+  ingress {
+    description      = "HTTP"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description      = "SSH"
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = {
+    Name = "mysg9"
+  }
+}
+
+# Create Instance
+
+resource "aws_instance" "terra_Ec2" {
+  ami           = "ami-0e1bed4f06a3b463d"
+  instance_type = "t2.micro"
+  associate_public_ip_address = true
+  subnet_id = aws_subnet.terrasub.id
+  vpc_security_group_ids = [aws_security_group.mysg9.id]
+  key_name = "ubuntu"
+  count = 6
+
+  tags = {
+    Name = var.server_names[count.index]
+  }
+}
+
+# Output for Public IP addresses
+# Output for details of all EC2 instances (Name, Public IP, Private IP)
+output "instance_details" {
+  description = "Details of all EC2 instances with their names, public and private IPs"
+  value = [
+    for instance in aws_instance.terra_Ec2 : {
+      name         = instance.tags["Name"]
+      public_ip    = instance.public_ip
+      private_ip   = instance.private_ip
+    }
+  ]
+}
+
